@@ -10,4 +10,4 @@ Copyright (c) 1999-2020, Tomasz Grysztar.
 
 All rights reserved.
 
-Read the [license.txt](license.txt).
+Read the [license.txt](LICENSE.TXT).
