@@ -1,3 +1,7 @@
+This branch is to test out custom file formats and exposing internal assembler state at assemble-time. It wont be merged with master.
+
+
+
 When this inevitably becomes stale, please go to the source:
 
 [https://flatassembler.net/](https://flatassembler.net) for the latest version.
