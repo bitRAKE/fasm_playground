@@ -28,10 +28,6 @@ while 1
 	load iAddr dword from fixupz:i+2
 	i = i + 6
 
-	vType = vType and $FF
-	fFlags = fFlags and $FF
-	iAddr = iAddr and $FFFFFFFF
-
 	if iAddr = 0
 	break
 	end if
