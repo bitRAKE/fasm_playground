@@ -4,6 +4,7 @@
 ; All rights reserved.
 
 include_variable db 'INCLUDE',0
+__reloc_name db 'fixupz'
 
 symbol_characters db 27
  db 9,0Ah,0Dh,1Ah,20h,'+-/*=<>()[]{}:,|&~#`;\'
@@ -439,6 +440,7 @@ symbols_11:
  db 'discardable',19h,25
  db 'interpreter',1Eh,3
  db 'notpageable',19h,27
+ db 'relocatable',1Ch,80h ; so many bits ;)
 symbols_end:
 
 instructions:

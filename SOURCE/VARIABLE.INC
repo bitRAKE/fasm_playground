@@ -74,6 +74,8 @@ uncompressed_displacement dd ?
 format_flags dd ?
 resolver_flags dd ?
 symbols_stream dd ?
+__reloc_label dd 0
+;__reloc_addressing_space dd 0 ; only set non-zero when custom relocations are enabled
 number_of_relocations dd ?
 number_of_sections dd ?
 stub_size dd ?
