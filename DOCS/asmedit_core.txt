@@ -1,0 +1,537 @@
+
+1. Interface functions
+
+The functions listed below are the system-dependent ones that are required
+by core and need to be provided by interface.
+
+   get_memory
+     Parameters:
+       ECX = requested amount of memory
+     Return:
+       EAX = address of allocated memory or zero if failed
+       EBX = handle for allocated block
+     Notes:
+       Address of allocated memory must be aligned at least to double word.
+
+   release_memory
+     Parameters:
+       EBX = handle of memory block that is no longer used
+     Return:
+       none
+
+   not_enough_memory
+     Parameters:
+       none
+     Return:
+       should not return
+     Notes:
+       This function must restore the stack frame, warn the user about
+       memory shortage and return to the main program loop directly.
+
+
+2. Core functions
+
+The core functions reside in the files:
+   BLOCKS.INC
+   EDIT.INC
+   MEMORY.INC
+   NAVIGATE.INC
+   SEARCH.INC
+   UNDO.INC
+Those files should be included into code in any order.
+   Below are listed all the functions of the core that can be directly called
+by the interface. They all preserve EBP, but all other registers may be
+destroyed.
+
+   init_editor_memory
+     Parameters:
+       none
+     Return:
+       CF set if failed due to memory shortage
+     Description:
+       Allocates the memory for editor and sets up all the editor variables
+       and the first empty line of text.
+
+   reset_editor_memory
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Resets the editor state and releases the unnecessary memory.
+       One empty line of text is allocated.
+
+   release_editor_memory
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Releases all the memory used by editor.
+
+   find_line
+     Parameters:
+       EAX = line number
+     Return:
+       ESI = pointer to first segment of found line
+       ECX = number of found line
+     Notes:
+       If given number was too high, the last line of text is returned.
+
+   check_line_length
+     Parameters:
+       ESI = pointer to first segment of line
+     Return:
+       ECX = length of line in characters
+       ESI = pointer to last segment of line
+     Notes:
+       If line has more segments than are needed, they are released by
+       this function automatically.
+
+   update_window
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       This function updates the window position in text, it should be called
+       after any modification or movement or resize of the window to make sure
+       that the window is correctly placed.
+
+   let_caret_appear
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       This function scrolls the window so the caret becomes visible.
+       The update_window function must be called first before calling this one.
+
+   move_line_up
+   move_line_down
+   move_page_up
+   move_page_down
+   move_to_previous_word
+   move_to_next_word
+   move_to_line_end
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Each of these functions moves the caret appropriately to its name.
+
+   put_character
+     Parameters:
+       AL = character
+     Return:
+       none
+     Description:
+       Puts the given character at current caret position, the position of
+       caret is incremented. The result of operation depends on current mode.
+
+   delete_character
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Deletes the character at current caret position. The position of caret
+       is not changed. The result of operation depends on current mode.
+
+   tabulate
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Makes the tabulation at current caret position.
+       The result depends on current mode.
+
+   insert_into_line
+     Parameters:
+       ESI = pointer to text
+       ECX = length of text
+     Return:
+       none
+     Description:
+       Inserts text at current caret position. The position of caret is not
+       changed. If esi is zero, the given amount of spaces is inserted.
+       The result of operation depends on current mode.
+
+   delete_from_line
+     Parameters:
+       ECX = amount of characters to delete
+     Return:
+       none
+     Description:
+       Deletes the given amount of characters at current caret position. The
+       position of caret is not changed. The result of operation depends on
+       current mode.
+
+   clear_rest_of_line
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Clears everything starting from the caret position up to the end of
+       line.
+
+   break_line
+     Parameters:
+       EBX = indent
+     Return:
+       none
+     Description:
+       Breaks the line at current caret position and indents the new line
+       according to the parameter. Position of caret is moved to the indent
+       point of new line. The result of operation depends on current mode.
+
+   go_to_next_line
+     Parameters:
+       EBX = position in next line
+     Return:
+       none
+     Description:
+       Moves caret to the next line at given position. If no such line existed,
+       it is added to text.
+
+   cut_line_break
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Attaches the next line to the current one at caret position.
+       Works only in insert mode.
+
+   carriage_return
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Performs the line break with automatic indent when such enabled.
+       The automatic indents settings doesn't have effect in the
+       overwrite mode.
+
+   insert_block
+     Parameters:
+       ESI = pointer to zero-ended text
+     Return:
+       none
+     Description:
+       The text is inserted as a new selection at current caret position.
+       The result depends on current mode.
+
+   delete_block
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Deletes the current selection. The result depends on current mode.
+
+   get_block_length
+     Parameters:
+       none
+     Return:
+       ECX = size of text
+     Description:
+       Returns the size of buffer needed for currently selected text.
+
+   copy_block
+     Parameters:
+       EDI = pointer to buffer for text
+     Return:
+       none
+     Description:
+       Copies the currently selected text into given buffer.
+
+   find_first
+     Parameters:
+       ESI = pointer to zero-ended text
+       EAX = flags
+     Return:
+       CF set if text not found.
+     Description:
+       Searches for the first occurence of given text from the current caret
+       position using the search type specified by flags. If text was found,
+       the caret and selection positions are updated to mark the text.
+       The text cannot contain line breaks.
+
+   find_next
+     Parameters:
+       none
+     Return:
+       CF set if text not found or no text search in operation.
+     Description:
+       Continues the search started with find_first function.
+
+   get_caret_segment
+     Parameters:
+       none
+     Return:
+       ESI = segment of line where the caret resides
+       EDX = position in segment
+     Notes:
+       The position may exceed the size of data in segment if this is the
+       last segment of line and the caret is in the blank space after the
+       end of line.
+
+   copy_from_line
+     Parameters:
+       EDI = pointer to buffer for text
+       ECX = number of bytes to copy
+       ESI = segment of line where to start
+       EDX = position in segment
+     Return:
+       EDI = pointer to first byte after text copied into buffer
+     Description:
+       Copies the given amount of bytes from line into the buffer.
+       The given position in segment may exceed the size of data in segment,
+       in such case function moves to the next segments appropriately, so
+       if specified segment is the first segment of line, you may just fill
+       EDX with the position in line from where you want the characters to be
+       copied. If there is more bytes requested than the line contains starting
+       from the given position, the rest of buffer is filled with spaces.
+
+   get_word_at_caret:
+     Parameters:
+       none
+     Return:
+       EDX = position in current line where the word begins
+       ECX = length of word in characters
+     Description:
+       Determines the position and length of the word at caret, that is the
+       either the word that has one of its characters pointed by the caret, or
+       the word that has the caret immediately following it.
+
+   set_text
+     Parameters:
+       ESI = pointer to zero-ended text
+     Return:
+       none
+     Description:
+       Resets the editor with the given text. There is no undo available.
+
+   store_status_for_undo
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Begins the new block of information for undo and stores the editor
+       status there. All changes done with the core functions then store
+       the information for undo in that block.
+     Notes:
+       This function preserves all registers.
+
+   undo_changes
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Restores the text and editor to the state at which it was on the
+       last call to store_status_for_undo.
+
+   clear_undo_data
+     Parameters:
+       none
+     Return:
+       none
+     Description:
+       Clears all the data stored for the undo operation.
+
+   The functions listed below are used internally by the most of the core
+operations, interface doesn't need to use them unless it needs to do some
+text modifications by directly poking in segments.
+
+   allocate_segment
+     Parameters:
+       none
+     Return:
+       CF set if failed
+       EAX = pointer to allocated segment
+     Description:
+       Allocates one segment in the memory of editor.
+
+   store_segment_for_undo
+     Parameters:
+       ESI = pointer to segment
+     Return:
+       none
+     Description:
+       Stores the segment in current block of information for undo.
+       You should call this function before doing any direct modifications
+       to the segment.
+     Notes:
+       This function preserves all registers.
+
+   store_free_segment_for_undo
+     Parameters:
+       EAX = pointer to newly allocated segment
+     Return:
+       none
+     Description:
+       Stores the information about newly allocated segment in current block
+       of information for undo. You should call this function after you have
+       allocated some segment for current text changes.
+     Notes:
+       This function preserves all registers.
+
+
+4. External constants
+
+The following are some constants that are required by the core, but are
+not defined by the core itself. Every constant is provided here with the
+default value, which in most cases should be a good choice.
+
+   BLOCK_LENGTH = 100h * SEGMENT_LENGTH
+     Length of a single block of memory that editor allocates for the most
+     of its purposes. When editor needs more memory, it allocates the new
+     blocks, each of the same size. This length has to be the multiple of
+     the length of segment.
+
+   SEGMENT_LENGTH = 100h
+     Length in bytes of a segment of editor memory. The segments have fixed
+     size and each one corresponds to a single line of text (if the line is
+     too long to fit in the segment, it is split between more segments),
+     however some of them are used for other purposes.
+     The length of segment must be a multiple of four and it also must be
+     large enough to hold the editor status variables, since the undo
+     mechanism uses a single segment to hold the status of editor.
+
+   SEGMENT_HEADER_LENGTH = 16
+     The length of the header of a segment. Only the bytes after the
+     header are available for the actual text data. This length must be a
+     multiple of four, and needs to be at least 16. Those first four double
+     words are used by core, if the header is defined to be longer, the
+     additional double words may be used freely by the interface.
+
+   SEGMENT_DATA_LENGTH = SEGMENT_LENGTH - SEGMENT_HEADER_LENGTH
+     Must be equal to the difference between the SEGMENT_LENGTH and
+     SEGMENT_HEADER_LENGTH. This is the amount of text that resides in
+     the single segment (even when the actual text is shorter than this
+     value, it is padded with spaces to fill the whole segment).
+
+   AEMODE_OVERWRITE = 1
+   AEMODE_VERTICALSEL = 2
+     The mode flags, the flags that are set in the "editor_mode" variable
+     to select the modes of the editor.
+
+   AEFIND_CASESENSITIVE = 1
+   AEFIND_WHOLEWORDS = 2
+   AEFIND_BACKWARD = 4
+     Search flags, the flags that may be passed to the "find_first" routine.
+
+   AES_AUTOINDENT = 1
+   AES_AUTOBRACKETS = 2
+   AES_SMARTTABS = 4
+     Option flags, the flags that are set in the "editor_style" variable to
+     enable some special options of the editor. The interface may define more
+     options for its own use.
+
+
+5. External variables
+
+The variables listed here are the that are required by core but need to be
+defined by interface.
+
+   editor_style
+     The option flags - this variable should be initialized by interface
+     to a proper combination of flags, the core only reads this value.
+
+
+6. Internal variables
+
+The interal variables of the core are defined in the file VARIABLE.INC,
+which shall be included somewhere in the data section. Since the core of
+editor doesn't touch the EBP register, you may also include this file into
+a virtual block relative to EBP, it gives a possibility of easily creating
+environment with multiple instances of the editor - the switch can be in such
+case done just by changing the EBP to point to the internal data of the
+other instance.
+   The variables listed below are the ones that may be useful to interface,
+including those necessary to be able to properly represent the current state
+of the editor on the screen.
+
+   editor_memory
+     This variable contains the pointer to the main (initial) memory block
+     of an editor. The first segment in this block is reserved for the storage
+     of the internal variables, however only first 16 bytes are used by the
+     core. The interface may choose to store all the internal variables
+     of the editor in the tail of this segment, as long as segment length is
+     large enough - this method is used by some interfaces to store all the
+     data of the given editor instance when switching to another one, the
+     reason for it being to avoid allocating additional storage block for
+     each instance. Interface should not modify this value.
+
+   editor_mode
+     The mode flags - this variable may be accessed by interface to set
+     or read some of the mode flags, defined by appropriate constants.
+
+   window_width
+   window_height
+     These two variables define the dimensions of a editor window (a dimension
+     unit is a single character). Each time the interface sets them to a new
+     values, it needs to call the "update_window" routine after.
+
+   window_line
+   window_line_number
+   window_position
+     The coordinates of the upper left corner of editor window relative to
+     the edited text are defined by these variables. The "window_line_number"
+     is a row coordinate starting from 1, the "window_position" is a column
+     coordinate starting from 0.
+       The "window_line" is a pointer to the first segment of line, which
+     contains the upper left corner of a window. The first double word of
+     each segment contains the pointer to a next segment of text, with
+     a lowest bit set if this is a next segment of the same line (you have
+     to clear that bit to get a valid pointer then) or with a lowest bit
+     clear if the following segment is a first segment of the next line.
+       These three variables and the window dimensions are everything that is
+     really needed to be able to draw the editor window onto the screen.
+
+   caret_line
+   caret_line_number
+   caret_position
+     The coordinates of a caret (cursor) inside the text. They are given in
+     the same way as window coordinates.
+
+   selection_line
+   selection_line_number
+   selection_position
+     If the "selection_line" has the value different than zero, there exists
+     a selection of text, and these variables define the coordinates of the
+     origin point of the selection.
+       When vertical selection is disabled, the position of caret and the
+     selection origin are the two ends of the selected text. The one of
+     them that is an earlier position of text is the beginning of the
+     selection, and points to the first selected character. The second end
+     is the end of selection and points to the first character after the
+     selected text.
+       When vertical selection is enabled, the position of caret and the
+     selection origin are the two corners of the selected rectangular are
+     of text. The one of those positions that is earlier in text points
+     to the character in the upper left corner of the selection rectangle,
+     the second position points to the character imediately following the
+     character in the bottom right corner of the rectangle.
+
+   lines_count
+   maximum_position
+     These variables give the dimensions of the whole area of text (useful
+     if interface wants to create the scrollbars). The "lines_count" is the
+     number of the last row of text, and the "maximum_position" is the
+     maximum allowed position of the caret.
+       The inteface should not modify those values.
+
+   undo_data
+   search_data
+     The interface may only need to check whether those variables are zero
+     or not. The "undo_data" is not zero when there exists some undo
+     information. The "search_data" is not zero when there is some search
+     started that may be continued with "find_next" routine.
+       The interface should never modify any of those variables.
